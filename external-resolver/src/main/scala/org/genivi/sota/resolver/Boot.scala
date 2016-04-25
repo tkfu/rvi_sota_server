@@ -27,14 +27,21 @@ class Routing
   (implicit db: Database, system: ActorSystem, mat: ActorMaterializer, exec: ExecutionContext)
     extends Directives {
 
-  val route: Route = pathPrefix("api" / "v1") {
-    handleRejections(rejectionHandler) {
-      handleExceptions(exceptionHandler) {
-        new VehicleDirectives().route ~
-        new PackageDirectives().route ~
-        new FilterDirectives().route ~
-        new ResolveDirectives().route ~
-        new ComponentDirectives().route
+  /**
+    * A Content-Length header in a request or response is actually not HTTP-conformant. It should go with the entity.
+    */
+  private val removeContentLengthHeader = mapResponseHeaders(_.filterNot(_.lowercaseName == "content-length"))
+
+  val route: Route = removeContentLengthHeader {
+    pathPrefix("api" / "v1") {
+      handleRejections(rejectionHandler) {
+        handleExceptions(exceptionHandler) {
+          new VehicleDirectives().route ~
+          new PackageDirectives().route ~
+          new FilterDirectives().route ~
+          new ResolveDirectives().route ~
+          new ComponentDirectives().route
+        }
       }
     }
   }

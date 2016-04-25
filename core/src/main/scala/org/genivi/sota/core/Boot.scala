@@ -65,7 +65,12 @@ object Boot extends App with DatabaseConfig {
   import Directives._
   import org.genivi.sota.core.rvi.ServerServices
 
-  def routes(notifier: UpdateNotifier) = {
+  /**
+    * A Content-Length header in a request or response is actually not HTTP-conformant. It should go with the entity.
+    */
+  private val removeContentLengthHeader = mapResponseHeaders(_.filterNot(_.lowercaseName == "content-length"))
+
+  def routes(notifier: UpdateNotifier): Route = removeContentLengthHeader {
     new WebService(notifier, externalResolverClient, db).route ~ startSotaServices(db)
   }
 
