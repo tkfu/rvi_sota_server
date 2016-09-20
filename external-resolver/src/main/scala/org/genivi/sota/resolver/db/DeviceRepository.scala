@@ -244,7 +244,7 @@ object DeviceRepository {
     val filter = And(vins, And(pkgs, comps))
 
     for {
-      devices <- deviceRegistry.listNamespace(namespace)
+      devices <- deviceRegistry.listNamespace()
       searchResult <- DbDepResolver.filterDevices(namespace, devices.map(d => d.uuid -> d.deviceId).toMap, filter)
     } yield searchResult
   }
