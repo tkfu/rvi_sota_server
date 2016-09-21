@@ -49,24 +49,19 @@ trait DeviceGenerators {
   val genDeviceT: Gen[DeviceT] = genDeviceTWith(genDeviceName, genDeviceId)
 
   def genConflictFreeDeviceTs(): Gen[Seq[DeviceT]] =
-    genConflictFreeDeviceTs(arbitrary[Int].sample.get)
+    arbitrary[Int].flatMap(genConflictFreeDeviceTs(_))
 
   def genConflictFreeDeviceTs(n: Int): Gen[Seq[DeviceT]] = {
-    val names: Seq[DeviceName] =
-      Gen.containerOfN[Seq, DeviceName](n, genDeviceName)
-      .suchThat { c => c.distinct.length == c.length }
-      .sample.get
-    val ids: Seq[DeviceId] =
-      Gen.containerOfN[Seq, DeviceId](n, genDeviceId)
-      .suchThat { c => c.distinct.length == c.length }
-      .sample.get
+    import scala.collection.JavaConversions._
 
-    val namesG: Seq[Gen[DeviceName]] = names.map(Gen.const(_))
-    val idsG: Seq[Gen[DeviceId]] = ids.map(Gen.const(_))
+    val namesG = Gen.listOfN(n, arbitrary[DeviceName]).retryUntil(l => l.distinct.length == l.length)
+    val idsG = Gen.listOfN(n, arbitrary[DeviceId]).retryUntil(l => l.distinct.length == l.length)
 
-    namesG.zip(idsG).map { case (nameG, idG) =>
-      genDeviceTWith(nameG, idG).sample.get
-    }
+    for {
+      names <- namesG
+      ids <- idsG
+      devs <- Gen.sequence(names.zip(ids).map { case (n, i) => genDeviceTWith(n, i) })
+    } yield devs
   }
 
   implicit lazy val arbDeviceName: Arbitrary[DeviceName] = Arbitrary(genDeviceName)
@@ -75,17 +70,8 @@ trait DeviceGenerators {
   implicit lazy val arbLastSeen: Arbitrary[Instant] = Arbitrary(genLastSeen)
   implicit lazy val arbDevice: Arbitrary[Device] = Arbitrary(genDevice)
   implicit lazy val arbDeviceT: Arbitrary[DeviceT] = Arbitrary(genDeviceT)
+  implicit lazy val arbDeviceTs: Arbitrary[Seq[DeviceT]] = Arbitrary(genConflictFreeDeviceTs)
 
 }
 
 object DeviceGenerators extends DeviceGenerators
-
-object InvalidDeviceGenerators extends DeviceGenerators with DeviceIdGenerators {
-  val genInvalidVehicle: Gen[Device] = for {
-  // TODO: for now, just generate an invalid VIN with a valid namespace
-    deviceId <- genInvalidDeviceId
-    d <- genDevice
-  } yield d.copy(deviceId = Option(deviceId), namespace = Namespaces.defaultNs)
-
-  def getInvalidVehicle: Device = genInvalidVehicle.sample.getOrElse(getInvalidVehicle)
-}

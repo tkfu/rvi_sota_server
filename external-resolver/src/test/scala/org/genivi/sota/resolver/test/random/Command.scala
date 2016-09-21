@@ -293,7 +293,6 @@ trait CommandUtils extends
 
 trait InvalidCommandUtils { _: CommandUtils =>
 
-  import InvalidDeviceGenerators._
   import org.genivi.sota.resolver.test.generators.InvalidFilterGenerators._
   import org.genivi.sota.resolver.test.generators.InvalidComponentGenerators._
 
