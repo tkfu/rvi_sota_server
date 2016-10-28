@@ -13,7 +13,9 @@ import eu.timepit.refined.string.Regex
 import io.circe.generic.auto._
 import org.genivi.sota.common.DeviceRegistry
 import org.genivi.sota.data.{Namespace, PackageId, Uuid}
+import org.genivi.sota.http.AuthDirectives.AuthScope
 import org.genivi.sota.http.ErrorHandler
+import org.genivi.sota.http.UuidDirectives.extractUuid
 import org.genivi.sota.marshalling.CirceMarshallingSupport._
 import org.genivi.sota.marshalling.RefinedMarshallingSupport._
 import org.genivi.sota.resolver.common.RefinementDirectives.{refinedPackageId, refinedPartNumber}
@@ -32,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * @see {@linktourl http://advancedtelematic.github.io/rvi_sota_server/dev/api.html}
  */
 class DeviceDirectives(namespaceExtractor: Directive1[Namespace],
+                       authDirective: AuthScope => Directive0,
                        deviceRegistry: DeviceRegistry)
                       (implicit system: ActorSystem,
                         db: Database,
@@ -40,7 +43,16 @@ class DeviceDirectives(namespaceExtractor: Directive1[Namespace],
 
   import Directives._
 
-  val extractUuid: Directive1[Uuid] = refined[Uuid.Valid](Slash ~ Segment).map(Uuid(_))
+  private[this] def failNamespaceRejection(msg: String): Rejection = AuthorizationFailedRejection
+
+  def extractDeviceUuid(ns: Namespace): Directive1[Uuid] = extractUuid.flatMap { deviceId =>
+    import scala.util.{Success, Failure}
+    val f = deviceRegistry.fetchDevice(ns, deviceId)
+    onComplete(f) flatMap {
+      case Success(device) => provide(deviceId)
+      case Failure(t) => reject(failNamespaceRejection("Cannot validate namespace"))
+    }
+  }
 
   def searchDevices(ns: Namespace): Route =
     parameters(('regex.as[String Refined Regex].?,
@@ -111,8 +123,11 @@ class DeviceDirectives(namespaceExtractor: Directive1[Namespace],
           uninstallPackage(ns, device, pkgId)
         }
       }
-    } ~
-    (path("packages") & put) {
+    }
+  }
+
+  def packagesApi: Route = extractUuid { device =>
+    (path("packages") & put & authDirective(s"ota-core.{device.show}.write")) {
       updateInstalledSoftware(device)
     }
   }
@@ -151,11 +166,12 @@ class DeviceDirectives(namespaceExtractor: Directive1[Namespace],
   def deviceApi: Route =
     pathPrefix("devices") {
       namespaceExtractor { ns =>
-        (get & pathEnd) { searchDevices(ns) }
-      } ~
-      extractUuid { device =>
-        packageApi(device) ~
+        (get & pathEnd) { searchDevices(ns) } ~
+        extractDeviceUuid(ns) { device =>
+          packageApi(device) ~
           componentApi(device)
+        } ~
+        packagesApi
       }
     }
 
