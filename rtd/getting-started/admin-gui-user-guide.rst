@@ -1,0 +1,89 @@
+Admin GUI Guide
+```````````````
+
+This is the user manual for the SOTA Admin Web GUI. This is a simple web front-end to the `Core, Resolver, and Device Registry APIs <http://genivi.github.io/rvi_sota_server/dev/api.html>`__. The APIs should be considered the canonical interface.
+
+Signing in
+==========
+
+The default username is ``genivi``, and the default password is ``genivirocks!``. The web UI will be at http://localhost:9000 by default.
+
+Managing Vehicles
+=================
+
+Adding a VIN
+------------
+
+To add a VIN, click the **Vehicles** tab at the left of the page. Enter a valid VIN number (exactly 17 characters long and consisting only of alphanumeric characters) in the **Vehicle Name** field, and click the **Add Vehicle** button. If the addition was successful, the newly added VIN will appear in the list at the bottom of the page.
+
+Adding components and packages to a VIN
+---------------------------------------
+
+You might need to let SOTA know about the software packages and hardware components already installed on a particular VIN. To do so, click on any VIN from the vehicles page, and click **Add Installed Package** or **Add Component**.
+
+Managing Filters
+================
+
+You can create filters to powerfully select sub-groups of VINs. For example, you might wish to create a filter that matches only vehicles that have the hardware component **AcmeDVDPlayer**, so that you can send a firmware update to only the relevant vehicles.
+
+Filter syntax
+-------------
+
+SOTA has a filter syntax to create these filters; currently the valid terms are **vin\_matches**, **has\_package**, and **has\_component**, and the boolean operators **NOT**, **AND**, and **OR**. **vin\_matches**, **has\_package**, and **has\_component** take regular expressions (enclosed in quotes) as arguments.
+
+For a filter matching all VINs beginning with 12ABC, that have the AcmeDVDPlayer installed, the syntax would be ``vin_matches "^12ABC" AND has_component "AcmeDVDPlayer"``.
+
+Creating a filter
+-----------------
+
+To create a new filter, click the **Filters** tab at the left of the page. Enter a unique alphanumeric name in the **Filter Name** field, and enter your expression in the **Filter Expression** field. Click the **Add Filter** button. If the filter was successfully created, you should see the filter appear below.
+
+Editing a filter
+----------------
+
+From the **Filters** tab, click details next to the filter you wish to edit. Edit the filter expression in the box, then click Update Filter to save it.
+
+Deleting a filter
+-----------------
+
+From the **Filters** tab, click details next to the filter you wish to delete. Click Delete Filter on the details page.
+
+Associating a filter with a package
+-----------------------------------
+
+From the **Filters** tab, click details next to the filter you wish to associate. At the bottom of the page you will see a list of all available packages under "Add Packages". You can click on the packages you wish to associate with this filter. To de-associate a package, click on it under "Current Packages".
+
+Managing Software Packages and Hardware Components
+==================================================
+
+Adding a software package
+-------------------------
+
+To add a software package, you will need to upload a package file and give it a unique **Package ID**. A package ID consists of a package name and a version number. The name must be alphanumeric, and the version must consist of three digits separated by periods. (For example, 3.0.4 and 0.115.33 are both valid version numbers, but 1.3 and 2.7.22b are not.)
+
+Click the **Packages** tab at the left of the page. Enter a Package Name, Version, and optionally a description and vendor name in the appropriate fields. Then, select a file to upload. Click **Add Package**. If the upload was successful, you will see the package added to the list at the bottom of the page.
+
+Adding a hardware component
+---------------------------
+
+To add a hardware component, go to the **Components** tab and click **New Component**. Enter a part number (alphanumeric, 30 characters or less), optionally add a description, and click **Add Component**.
+
+Searching for packages
+----------------------
+
+You can search for packages by regular expression. As you type a regular expression in the **Filter** field, the list of packages below is dynamically updated.
+
+Creating Install Campaigns
+==========================
+
+To create an install campaign for a package, go to the **Packages** tab and click **Create Campaign** next to the package you wish to create a campaign for.
+
+    **Important**
+
+    If there are no filters associated with the package, it will affect all VINs.
+
+Give the campaign a priority (an integer, lower numbers are higher priority), a start date, and an end date. Click **Create Update**. You will be taken to the details page for that campaign.
+
+    **Tip**
+
+    You might need to manually refresh the details page.

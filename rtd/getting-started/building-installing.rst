@@ -1,0 +1,158 @@
+Building & Deploying
+````````````````````
+
+Both the SOTA server components and the SOTA client are available as docker containers, and can be run quickly with `docker-compose <https://docs.docker.com/compose>`__. For more detailed instructions on running SOTA with docker, see `Deployment with docker-compose <../doc/deployment-with-dockercompose.html>`__.
+
+This page contains instructions on getting a local development system up and running.
+
+    **Tip**
+
+    While we do our best to keep this page current, it may be a good idea to cross-reference the setup for `docker-compose deployment <../doc/deployment-with-dockercompose.html>`__ if you’re having trouble getting it running locally. We use the publicly available docker-compose files in CI, so if anything changes, it will also get changed there.
+
+Building rvi\_sota\_server Locally
+==================================
+
+For local development, the following prerequisites are required:
+
+1. Java 8
+
+2. MariaDB (with appropriate databases created)
+
+3. An RVI server node
+
+The other dependencies are managed using Scala’s ``sbt``. If you have sbt installed then use it, otherwise the ``./sbt`` script in the root of the project will bootstrap everything you need beyond Java 8.
+
+Prerequisite: Java
+------------------
+
+To check the version of java installed, run:
+
+::
+
+    # java -version
+    java version "1.8.0_45"
+    Java(TM) SE Runtime Environment (build 1.8.0_45-b14)
+    Java HotSpot(TM) 64-Bit Server VM (build 25.45-b02, mixed mode)
+
+Prerequisite: MariaDB
+---------------------
+
+For development, a local MariaDB install is required. Create two databases called ``sota_core`` and ``sota_resolver``:
+
+.. code:: sql
+
+    mysql -u root -p
+    CREATE DATABASE sota_core CHARACTER SET utf8;
+    CREATE DATABASE sota_core_test CHARACTER SET utf8;
+    CREATE DATABASE sota_resolver CHARACTER SET utf8;
+    CREATE DATABASE sota_resolver_test CHARACTER SET utf8;
+    CREATE DATABASE sota_device_registry CHARACTER SET utf8;
+    CREATE DATABASE sota_device_registry_test CHARACTER SET utf8;
+    CREATE USER 'sota'@'localhost' IDENTIFIED BY 's0ta';
+    GRANT ALL PRIVILEGES ON sota_core . * TO 'sota'@'localhost';
+    GRANT ALL PRIVILEGES ON sota_core_test . * TO 'sota'@'localhost';
+    GRANT ALL PRIVILEGES ON sota_resolver . * TO 'sota'@'localhost';
+    GRANT ALL PRIVILEGES ON sota_resolver_test . * TO 'sota'@'localhost';
+    GRANT ALL PRIVILEGES ON sota_device_registry . * TO 'sota'@'localhost';
+    GRANT ALL PRIVILEGES ON sota_device_registry_test . * TO 'sota'@'localhost';
+    FLUSH PRIVILEGES;
+
+To update the database schema, run ``sbt flywayMigrate``
+
+This will apply any new migrations in src/main/resources/db/migration, and keep your existing data. This command expects to find the databases on localhost with sota/s0ta for the username/password. The URL to the database and login details can be overridden with the ``CORE_DB_URL``, ``CORE_DB_USER`` and ``CORE_DB_PASSWORD`` environment variables for the core, ``RESOLVER_DB_URL``, ``RESOLVER_DB_USER``, and ``RESOLVER_DB_PASSWORD`` for the external resolver, and ``DEVICE_REGISTRY_DB_URL``, ``DEVICE_REGISTRY_DB_USER``, and ``DEVICE_REGISTRY_DB_PASSWORD`` for the device registry. See ``project/SotaBuild.scala`` for the implementation.
+
+    **Tip**
+
+    If you are having trouble with flywayMigrate after an update, try ``sbt flywayRepair``, then ``sbt flywayMigrate`` again. If that doesn’t work, you can delete all database tables with ``sbt flywayClean``, and then re-create them with ``sbt flywayMigrate``.
+
+Optional component: RVI server node
+-----------------------------------
+
+Client-server communication can be done using the `RVI protocol <https://github.com/genivi/rvi_core>`__. If that functionality is desired, the SOTA Core Server will require an active RVI Server Node to run. The easiest way get an RVI node suitable for SOTA up and running is to use our `docker images <../doc/deployment-with-dockercompose.html>`__.
+
+If you don’t need to worry about the client communication part of the server, you might not want to bother with setting up an RVI node. You can run without RVI by setting the ``CORE_INTERACTION_PROTOCOL`` environment variable to "none" before you run sota-core:
+
+.. code:: sh
+
+    export CORE_INTERACTION_PROTOCOL="none"
+    sbt sota-core/run
+
+Running the server
+------------------
+
+Once flywayMigrate has run, open three consoles and run:
+
+.. code:: sh
+
+    sbt sota-resolver/run
+    sbt sota-core/run
+    sbt sota-device_registry/run
+    sbt sota-webserver/run
+
+    **Tip**
+
+    The SOTA Core server looks for the RVI server node on localhost by default. If your RVI node is running somewhere else (e.g. if you’re running docker on a mac), you will need to specify ``RVI_URI`` as an environment variable. If your docker host was 192.168.99.100, for example, you would run ``RVI_URI="http://192.168.99.100:8801" sbt sota-core/run``.
+
+    **Tip**
+
+    The version format of packages is configurable, defaulting to MAJOR.MINOR.PATCH, where MAJOR, MINOR, and PATCH are unsigned integers. To change the format, specify a regular expression in the ``PACKAGES_VERSION_FORMAT`` environment variable.
+
+    **Tip**
+
+    The SOTA Web server connects to a LDAP server for login authentication, specified by the environment variables ``LDAP_HOST`` and ``LDAP_PORT``. For testing, you can start an in-memory LDAP server by setting ``LDAP_INMEMORY_ENABLE=true``. When running from the console the in-memory LDAP server is started by default, however the following paths need to be specified: ``LDAP_KEY_STORE_PATH=web-server/conf/certs/client.jks LDAP_TRUST_STORE_PATH=web-server/conf/certs/exampletrust.jks ./sbt sota-webserver/run``.
+
+Now open `localhost:9000 <http://localhost:9000/>`__ in a browser.
+
+Troubleshooting
+---------------
+
+If you are using an encrypted home directory, you may get the following error when attempting a build. This is because scala/sbt tends to create long file names, and these get expanded even further by ecryptfs.
+
+::
+
+    [error] File name too long
+    [error] one error found
+    [error] (core/compile:compileIncremental) Compilation failed
+    [error] Total time: 9 s, completed Jul 24, 2015 9:10:13 AM
+
+The solution is to point the build directories to somewhere outside ecryptfs:
+
+::
+
+    sudo mkdir /var/sota-build
+    sudo chown `whoami` /var/sota-build/
+    mkdir /var/sota-build/core-target
+    mkdir /var/sota-build/resolver-target
+    mkdir /var/sota-build/webserver-target
+    rm -r core/target/
+    rm -r external-resolver/target
+    rm -r web-server/target
+    ln -s /var/sota-build/core-target/ core/target
+    ln -s /var/sota-build/resolver-target external-resolver/target
+    ln -s /var/sota-build/webserver-target/ web-server/target
+
+Database Migrations
+-------------------
+
+Never make changes to migrations that already exist. Add columns by creating a new migration with an 'ALTER TABLE' statement.
+
+If someone else has added a migration, run ``sbt flywayMigrate`` to update your local database.
+
+Database Migration Troubleshooting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+flywayMigrate might fail with an error like this on some updates:
+
+```
+[error] (core/*:flywayMigrate) org.flywaydb.core.api.FlywayException: Validate failed. Migration Checksum mismatch for migration 1
+[error] → Applied to database : -2049361589
+[error] → Resolved locally    : 736866586
+[error] Total time: 205 s, completed Nov 16, 2015 10:51:38 AM
+```
+
+Try ``sbt flywayRepair``, then ``sbt flywayMigrate`` again. If that doesn’t fix the problem, you can try ``sbt flywayClean``, then ``sbt flywayMigrate``, but note that ``sbt flywayClean`` will delete all database tables.
+
+Building rvi\_sota\_client Locally
+==================================
+
+See `Building the SOTA Client <../cli/building-the-sota-client.html>`__.

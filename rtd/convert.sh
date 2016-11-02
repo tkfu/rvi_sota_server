@@ -1,0 +1,21 @@
+asciidoctor -b docbook -o - ../docs/_pages/admin-gui-user-guide.adoc | pandoc --columns=9999 -f docbook -t rst -o admin-gui-user-guide.rst
+asciidoctor -b docbook -o - ../docs/_pages/api.adoc | pandoc --columns=9999 -f docbook -t rst -o api.rst
+asciidoctor -b docbook -o - ../docs/_pages/architecture.adoc | pandoc --columns=9999 -f docbook -t rst -o architecture.rst
+asciidoctor -b docbook -o - ../docs/_pages/building-installing.adoc | pandoc --columns=9999 -f docbook -t rst -o building-installing.rst
+asciidoctor -b docbook -o - ../docs/_pages/building-the-sota-client.adoc | pandoc --columns=9999 -f docbook -t rst -o building-the-sota-client.rst
+asciidoctor -b docbook -o - ../docs/_pages/client-commands-and-events-reference.adoc | pandoc --columns=9999 -f docbook -t rst -o client-commands-and-events-reference.rst
+asciidoctor -b docbook -o - ../docs/_pages/client-implementation-example-session.adoc | pandoc --columns=9999 -f docbook -t rst -o client-implementation-example-session.rst
+asciidoctor -b docbook -o - ../docs/_pages/client-implementation.adoc | pandoc --columns=9999 -f docbook -t rst -o client-implementation.rst
+asciidoctor -b docbook -o - ../docs/_pages/client-startup-and-configuration.adoc | pandoc --columns=9999 -f docbook -t rst -o client-startup-and-configuration.rst
+asciidoctor -b docbook -o - ../docs/_pages/contributing.adoc | pandoc --columns=9999 -f docbook -t rst -o contributing.rst
+asciidoctor -b docbook -o - ../docs/_pages/database-style-guide.adoc | pandoc --columns=9999 -f docbook -t rst -o database-style-guide.rst
+asciidoctor -b docbook -o - ../docs/_pages/dependencies.adoc | pandoc --columns=9999 -f docbook -t rst -o dependencies.rst
+asciidoctor -b docbook -o - ../docs/_pages/deployment-with-dockercompose.adoc | pandoc --columns=9999 -f docbook -t rst -o deployment-with-dockercompose.rst
+asciidoctor -b docbook -o - ../docs/_pages/generated-documentation.adoc | pandoc --columns=9999 -f docbook -t rst -o generated-documentation.rst
+asciidoctor -b docbook -o - ../docs/_pages/introduction.adoc | pandoc --columns=9999 -f docbook -t rst -o introduction.rst
+asciidoctor -b docbook -o - ../docs/_pages/requirements.adoc | pandoc --columns=9999 -f docbook -t rst -o requirements.rst
+asciidoctor -b docbook -o - ../docs/_pages/scala-style-guide.adoc | pandoc --columns=9999 -f docbook -t rst -o scala-style-guide.rst
+asciidoctor -b docbook -o - ../docs/_pages/security-threats-mitigations.adoc | pandoc --columns=9999 -f docbook -t rst -o security-threats-mitigations.rst
+asciidoctor -b docbook -o - ../docs/_pages/use-cases.adoc | pandoc --columns=9999 -f docbook -t rst -o use-cases.rst
+asciidoctor -b docbook -o - ../docs/_pages/whitelisted-interactions.adoc | pandoc --columns=9999 -f docbook -t rst -o whitelisted-interactions.rst
+
